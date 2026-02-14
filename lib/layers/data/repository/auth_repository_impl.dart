@@ -1,0 +1,134 @@
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:food_control/layers/data/services/auth_service.dart';
+import 'package:food_control/layers/domain/entity/auth_entity.dart';
+import 'package:food_control/layers/domain/repository/auth_repository.dart';
+import 'package:food_control/layers/presentation/helpers/pin_hash_helper.dart';
+
+class AuthRepositoryImpl implements AuthRepository {
+  final FirebaseAuthService service;
+
+  AuthRepositoryImpl(this.service);
+
+  /// 🟢 REGISTER uchun tekshiruv
+/// nom mavjud bo'lsa → false
+/// mavjud bo'lmasa → true
+@override
+Future<bool> checkNameForRegister(String uidName) async {
+  final doc = await service.accounts.doc(uidName).get();
+  return !doc.exists;
+}
+
+
+
+/// 🔵 LOGIN uchun tekshiruv
+/// nom mavjud bo'lsa → true
+/// mavjud bo'lmasa → false
+@override
+Future<bool> checkNameForLogin(String uidName) async {
+  final doc = await service.accounts.doc(uidName).get();
+  return doc.exists;
+}
+
+
+  /// 🔵 LOGIN
+  @override
+  Future<AuthEntity> login({
+    required String uidName,
+    required String pin,
+  }) async {
+    await service.anonymousLogin();
+
+    final doc = await service.accounts.doc(uidName).get();
+
+    if (!doc.exists) {
+      throw Exception("Account topilmadi");
+    }
+
+    final data = doc.data() as Map<String, dynamic>;
+
+    final storedPinHash = data['pinHash'] as String?;
+
+    if (storedPinHash == null || storedPinHash != hashPin(pin)) {
+      throw Exception("PIN noto‘g‘ri");
+    }
+
+    return AuthEntity(
+      uidName: data['uidName'],
+      role: data['role'],
+    );
+  }
+
+  /// 🟢 REGISTER → ADMIN
+  @override
+  Future<AuthEntity> register({
+    required String uidName,
+    required String pin,
+  }) async {
+    final uid = await service.anonymousLogin();
+    final doc = service.accounts.doc(uidName);
+
+    if ((await doc.get()).exists) {
+      throw Exception("Account mavjud");
+    }
+
+    await doc.set({
+      "uidName": uidName,
+      "role": "admin",
+      "ownerUid": uid,
+      "pinHash": hashPin(pin),
+    });
+
+    return AuthEntity(uidName: uidName, role: "admin");
+  }
+
+  /// 👥 STAFF CREATE
+  @override
+  Future<void> createStaff({
+    required String uidName,
+    required String role,
+    required String pin,
+  }) async {
+    final adminUid = FirebaseAuth.instance.currentUser!.uid;
+    final doc = service.accounts.doc(uidName);
+
+    if ((await doc.get()).exists) {
+      throw Exception("Hisob mavjud");
+    }
+
+    await doc.set({
+      "uidName": uidName,
+      "role": role,
+      "ownerUid": adminUid,
+      "pinHash": hashPin(pin),
+    });
+  }
+}
+
+
+/// 🔹 UID nomini tekshiruvchi funksiya
+/// Agar doc mavjud bo‘lsa yoki uidName boshqa accountlarda ishlatilgan bo‘lsa → false
+/// Aks holda → true
+// Future<bool> checkNameForRegister(String uidName) async {
+//   final doc = service.accounts.doc(uidName);
+
+//   // Shu nomdagi doc mavjud bo‘lsa
+//   if ((await doc.get()).exists) {
+//     return false;
+//   }
+
+//   // Barcha accountlarni tekshirish
+//   final allAccounts = await service.accounts.get();
+//   final isUsedByOthers = allAccounts.docs.any((d) {
+//     final data = d.data() as Map<String, dynamic>;
+//     return d.id != uidName && data['uidName'] == uidName;
+//   });
+
+//   if (isUsedByOthers) {
+//     return false;
+//   }
+
+//   // Agar hech qaysi xato bo‘lmasa → true
+//   return true;
+// }
+

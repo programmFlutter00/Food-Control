@@ -1,0 +1,8 @@
+// This script fixes namespace issues for plugins that don't have namespace defined
+// Apply this to plugins that need namespace fixes
+
+android {
+    if (!hasProperty('namespace') && !android.hasProperty('namespace')) {
+        namespace = project.group ?: "com.example.${project.name}"
+    }
+}

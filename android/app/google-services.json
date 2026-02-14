@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612876114949",
+    "project_id": "food-control-15ad6",
+    "storage_bucket": "food-control-15ad6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612876114949:android:1c4ab2106bf1ce0e91506c",
+        "android_client_info": {
+          "package_name": "com.example.food_control"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0hvU9ab6LrRhhoCjW1tSKVgWw-4Gnmz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
