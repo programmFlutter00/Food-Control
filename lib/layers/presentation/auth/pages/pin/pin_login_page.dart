@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:food_control/layers/presentation/auth/widgets/error_dialog.dart';
+import 'package:food_control/layers/presentation/helpers/app_notification.dart';
 import 'package:food_control/layers/presentation/widgets/custom_floating_action_button.dart';
 import 'package:pinput/pinput.dart';
 import 'package:food_control/layers/presentation/admin/pages/main_navigation_page.dart';
 import 'package:food_control/layers/presentation/auth/bloc/cubit/auth_cubit.dart';
-import 'package:food_control/layers/presentation/helpers/snac_bar.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/widgets/standart_padding.dart';
 import 'package:gap/gap.dart';
@@ -32,7 +31,8 @@ class _PinLoginPageState extends State<PinLoginPage> {
   void _onPinChanged() {
     final pin = _pinController.text.trim();
     if (pin.isEmpty || pin.length < 5) {
-      showErrorDialog(context, "Iltimos pin kodni to'liq kiriting!");
+      InAppNotification.showError(context, "Iltimos pin kodni to'liq kiriting!");
+      // showErrorDialog(context, "Iltimos pin kodni to'liq kiriting!");
     }
     if (pin.length == 5) {
       context.read<AuthCubit>().login(widget.name, pin);
@@ -74,6 +74,7 @@ class _PinLoginPageState extends State<PinLoginPage> {
           Future.delayed(const Duration(milliseconds: 1000), () {
             setState(() => _borderColor = Colors.grey);
           });
+          
           // showMessage(context: context, message: "Pin xato, qaytadan urining");
         } else {
           setState(() => _borderColor = Colors.grey);
@@ -96,19 +97,19 @@ class _PinLoginPageState extends State<PinLoginPage> {
                 : const Icon(Icons.login),
           ),
           body: StandartPadding(
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Gap(15),
                   const Text(
-                    "PIN bilan kirish",
+                    "PIN kod",
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                   ),
                   const Gap(6),
                   const Text(
-                    "5 xonali PIN kiriting",
+                    "Hisobingizdagi PIN kodni kiriting",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,

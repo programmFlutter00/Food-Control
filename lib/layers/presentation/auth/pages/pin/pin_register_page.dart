@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:food_control/layers/presentation/auth/widgets/error_dialog.dart';
+import 'package:food_control/layers/presentation/helpers/app_notification.dart';
 import 'package:food_control/layers/presentation/widgets/custom_floating_action_button.dart';
 import 'package:pinput/pinput.dart';
 import 'package:food_control/layers/presentation/admin/pages/main_navigation_page.dart';
 import 'package:food_control/layers/presentation/auth/bloc/cubit/auth_cubit.dart';
-import 'package:food_control/layers/presentation/helpers/snac_bar.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/widgets/standart_padding.dart';
 import 'package:gap/gap.dart';
@@ -31,7 +30,8 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
   void _onPinChanged() {
     final pin = _pinController.text.trim();
     if (pin.isEmpty || pin.length > 5){
-      showErrorDialog(context, "Iltimos pin kodni to'liq kiriting!");
+      InAppNotification.showError(context, "Iltimos pin kodni to'liq kiriting!");
+      // showErrorDialog(context, "Iltimos pin kodni to'liq kiriting!");
     }
     if (pin.length == 5) {
       // PIN to'liq kiritilgan, avtomatik yuborish
@@ -68,7 +68,8 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
           );
         } else if (state.status == AuthStatus.unauthenticated &&
             state.errorMessage != null) {
-          showMessage(context: context, message: state.errorMessage!);
+              InAppNotification.showError(context, state.errorMessage!);
+          // showMessage(context: context, message: state.errorMessage!);
         }
       },
       builder: (context, state) {
@@ -88,19 +89,19 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
                 : const Icon(Icons.login),
           ),
           body: StandartPadding(
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Gap(15),
                   const Text(
-                    "PIN yarating",
+                    "PIN kod",
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                   ),
                   const Gap(6),
                   const Text(
-                    "5 xonali PIN kiriting",
+                    "Hisob uchun PIN kod yarating",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,

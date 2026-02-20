@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:food_control/layers/presentation/auth/bloc/cubit/auth_cubit.dart';
 import 'package:food_control/layers/presentation/auth/pages/pin/pin_register_page.dart';
-import 'package:food_control/layers/presentation/auth/widgets/error_dialog.dart';
-import 'package:food_control/layers/presentation/helpers/snac_bar.dart';
+import 'package:food_control/layers/presentation/helpers/app_notification.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/widgets/custom_floating_action_button.dart';
 import 'package:food_control/layers/presentation/widgets/standart_padding.dart';
@@ -42,7 +41,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
-        // Navigator chaqiruvini post-frame ichida qilamiz
         if (state.isReadyForPin && state.errorMessage == null && mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.of(context).push(
@@ -52,7 +50,6 @@ class _RegisterPageState extends State<RegisterPage> {
             );
           });
         } else if (state.errorMessage?.isNotEmpty ?? false) {
-          // showMessage(context: context, message: state.errorMessage!);
         }
       },
 
@@ -123,14 +120,12 @@ class _RegisterPageState extends State<RegisterPage> {
               final name = _controller.text.trim();
 
               if (name.isEmpty) {
-                showErrorDialog(context, "Iltimos hisob nomini kiriting!");
-             
+                InAppNotification.showError(context, "Iltimos hisob nomini kiriting!");             
                 return;
               }
 
               if (!_isValidName(name) || name.length < 7) {
-                showErrorDialog(context, "Bu hisob xavfsiz emas kuchliroq hisobdan foydalaning!");
-             
+                InAppNotification.showError(context, "Bu hisob xavfsiz emas!");             
                 return;
               }
 

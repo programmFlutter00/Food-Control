@@ -7,4 +7,5 @@ class AppIcons {
   static const String burger = '$_root/burger.jpg';
   static const String pizza = '$_root/pizza.jpg';
   static const String chicken = '$_root/chicken.jpg';
+  static const String appBarBgImage = '$_root/appbar_bg_image.jpg';
 }
