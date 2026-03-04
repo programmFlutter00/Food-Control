@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:food_control/layers/data/services/notification_service.dart';
+import 'package:food_control/layers/presentation/admin/pages/screens/profile_page.dart';
 import 'package:food_control/layers/presentation/admin/widgets/products/add_product.dart';
 import 'package:food_control/layers/presentation/admin/widgets/products/product_detail.dart';
 import 'package:food_control/layers/presentation/auth/bloc/cubit/auth_cubit.dart';
@@ -119,7 +120,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
       "type": "asosiy",
     },
   ];
-  
+
   // @override
   // void initState() {
   //   tz.initializeTimeZones();
@@ -166,14 +167,21 @@ class _ProductsListPageState extends State<ProductsListPage> {
                 },
                 icon: Icon(Icons.logout, size: 25, color: Colors.white),
               ),
-             
-                       
+
               IconButton(
                 onPressed: () {
-                  InAppNotification.showError(context, "Login ma'lumotlari noto‘g‘ri");
+                  Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => ProfilePage()));
                 },
-                icon: Icon(Icons.format_list_bulleted_outlined, size: 30, color: Colors.white),
+                icon: Icon(Icons.person, size: 30, color: Colors.white),
               ),
+              // IconButton(
+              //   onPressed: () {
+              //     InAppNotification.showError(context, "Login ma'lumotlari noto‘g‘ri");
+              //   },
+              //   icon: Icon(Icons.format_list_bulleted_outlined, size: 30, color: Colors.white),
+              // ),
             ],
           ),
         ),
@@ -222,7 +230,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                 Padding(
                   // padding: const EdgeInsets.only(top: 14, left: 14, right: 14),
                   padding: const EdgeInsets.all(0),
-          
+
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     // borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
@@ -260,7 +268,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
                           ),
                         ],
                       ),
-          
+
                       const Gap(10),
                       Text(
                         "${price.toMoney()} so'm",
@@ -293,14 +301,17 @@ class _ProductsListPageState extends State<ProductsListPage> {
     );
   }
 
-   Future<void> _showProductDetail(BuildContext context, Map<String, dynamic> product) async {
+  Future<void> _showProductDetail(
+    BuildContext context,
+    Map<String, dynamic> product,
+  ) async {
     await showModalBottomSheet(
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return ProductDetail(product: product,);
+        return ProductDetail(product: product);
       },
     );
   }
@@ -313,10 +324,8 @@ class _ProductsListPageState extends State<ProductsListPage> {
       barrierDismissible: true,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(5),
-          ),
-          
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+
           backgroundColor: Colors.white,
           title: Text(
             'Ishonchingiz komilmi?',
@@ -359,17 +368,16 @@ class _ProductsListPageState extends State<ProductsListPage> {
                 context.read<AuthCubit>().logout();
 
                 // if (uidName != null) {
-                  // await context.read<AuthCubit>().deleteAccount(uidName);
+                // await context.read<AuthCubit>().deleteAccount(uidName);
 
-                  // Delete tugagach sahifani Login/Register ga yo'naltirish
-                  if (!mounted) return;
-                  Navigator.of(dialogContext).pop(true);
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SplashLogoPage()),
-                    (route) => false,
-                  );
+                // Delete tugagach sahifani Login/Register ga yo'naltirish
+                if (!mounted) return;
+                Navigator.of(dialogContext).pop(true);
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const SplashLogoPage()),
+                  (route) => false,
+                );
                 // }
-                
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -630,11 +638,11 @@ class _ProductsListPageState extends State<ProductsListPage> {
 //                                         radius: 17,
 //                                         child: IconButton(
 //                                           onPressed: () {
-//                                             Navigator.of(context).push(
-//                                               MaterialPageRoute(
-//                                                 builder: (_) => ProfilePage(),
-//                                               ),
-//                                             );
+                                            // Navigator.of(context).push(
+                                            //   MaterialPageRoute(
+                                            //     builder: (_) => ProfilePage(),
+                                            //   ),
+                                            // );
 //                                           },
 //                                           icon: const Icon(
 //                                             Icons.person,

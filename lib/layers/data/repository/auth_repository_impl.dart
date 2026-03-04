@@ -1,4 +1,3 @@
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:food_control/layers/data/services/auth_service.dart';
 import 'package:food_control/layers/domain/entity/auth_entity.dart';
@@ -11,25 +10,22 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this.service);
 
   /// 🟢 REGISTER uchun tekshiruv
-/// nom mavjud bo'lsa → false
-/// mavjud bo'lmasa → true
-@override
-Future<bool> checkNameForRegister(String uidName) async {
-  final doc = await service.accounts.doc(uidName).get();
-  return !doc.exists;
-}
+  /// nom mavjud bo'lsa → false
+  /// mavjud bo'lmasa → true
+  @override
+  Future<bool> checkNameForRegister(String uidName) async {
+    final doc = await service.accounts.doc(uidName).get();
+    return !doc.exists;
+  }
 
-
-
-/// 🔵 LOGIN uchun tekshiruv
-/// nom mavjud bo'lsa → true
-/// mavjud bo'lmasa → false
-@override
-Future<bool> checkNameForLogin(String uidName) async {
-  final doc = await service.accounts.doc(uidName).get();
-  return doc.exists;
-}
-
+  /// 🔵 LOGIN uchun tekshiruv
+  /// nom mavjud bo'lsa → true
+  /// mavjud bo'lmasa → false
+  @override
+  Future<bool> checkNameForLogin(String uidName) async {
+    final doc = await service.accounts.doc(uidName).get();
+    return doc.exists;
+  }
 
   /// 🔵 LOGIN
   @override
@@ -53,10 +49,7 @@ Future<bool> checkNameForLogin(String uidName) async {
       throw Exception("PIN noto‘g‘ri");
     }
 
-    return AuthEntity(
-      uidName: data['uidName'],
-      role: data['role'],
-    );
+    return AuthEntity(uidName: data['uidName'], role: data['role']);
   }
 
   /// 🟢 REGISTER → ADMIN
@@ -103,32 +96,27 @@ Future<bool> checkNameForLogin(String uidName) async {
       "pinHash": hashPin(pin),
     });
   }
+
+  Future<bool> checkSubAccountExists({
+    required String ownerUid,
+    required String role,
+  }) async {
+    final snapshot = await service.accounts
+        .where('ownerUid', isEqualTo: ownerUid)
+        .where('role', isEqualTo: role)
+        .get();
+
+    return snapshot.docs.isNotEmpty;
+  }
+
+  Future<void> createSubAccount({
+    required String ownerUid,
+    required String role,
+  }) async {
+    await service.accounts.add({
+      "uidName": "$role-${DateTime.now().millisecondsSinceEpoch}",
+      "role": role,
+      "ownerUid": ownerUid,
+    });
+  }
 }
-
-
-/// 🔹 UID nomini tekshiruvchi funksiya
-/// Agar doc mavjud bo‘lsa yoki uidName boshqa accountlarda ishlatilgan bo‘lsa → false
-/// Aks holda → true
-// Future<bool> checkNameForRegister(String uidName) async {
-//   final doc = service.accounts.doc(uidName);
-
-//   // Shu nomdagi doc mavjud bo‘lsa
-//   if ((await doc.get()).exists) {
-//     return false;
-//   }
-
-//   // Barcha accountlarni tekshirish
-//   final allAccounts = await service.accounts.get();
-//   final isUsedByOthers = allAccounts.docs.any((d) {
-//     final data = d.data() as Map<String, dynamic>;
-//     return d.id != uidName && data['uidName'] == uidName;
-//   });
-
-//   if (isUsedByOthers) {
-//     return false;
-//   }
-
-//   // Agar hech qaysi xato bo‘lmasa → true
-//   return true;
-// }
-

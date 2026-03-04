@@ -11,29 +11,41 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  String? _selectedRole;
+  final TextEditingController _staffNameController = TextEditingController();
+  final TextEditingController _staffPinController = TextEditingController();
+
+  @override
+  void dispose() {
+    _staffNameController.dispose();
+    _staffPinController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final account = context.watch<AuthCubit>().state.account;
+    final authCubit = context.watch<AuthCubit>();
+    final account = authCubit.state.account;
 
     return Scaffold(
       appBar: AppBar(
+        foregroundColor: Colors.white,
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            onPressed: () {
-              _showDeskSelectionConfirmation();
-            },
-            icon: const Icon(Icons.logout, size: 25, color: Colors.red),
+            onPressed: _logout,
+            icon: const Icon(Icons.logout, size: 25, color: Colors.white),
           ),
         ],
       ),
       extendBodyBehindAppBar: true,
-      body: Stack(
+      body: Column(
         children: [
           /// 🔵 Background gradient
           Container(
-            height: 250,
+            height: 180,
+            width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xffFF7043), Color(0xffFF5722)],
@@ -41,93 +53,34 @@ class _ProfilePageState extends State<ProfilePage> {
                 end: Alignment.bottomCenter,
               ),
             ),
+            child: Center(
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.white,
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundColor: Colors.grey.shade300,
+                  child: const Icon(Icons.person, size: 50, color: Colors.grey),
+                ),
+              ),
+            ),
           ),
 
           /// ⚪ Main Content
-          Positioned(
-            top: 180,
-            left: 0,
-            right: 0,
-            bottom: 0,
+          Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-              ),
-              child: Column(
+              padding: const EdgeInsets.all(20),
+              color: Colors.white,
+              child: SingleChildScrollView(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 60),
-                
-                    /// User Info Card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Foydalanuvchi",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            account?.uidName ?? "Noma'lum",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                
                     const SizedBox(height: 20),
-                
-                    /// Extra section example
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.info_outline),
-                          SizedBox(width: 10),
-                          Text(
-                            "Profil ma'lumotlari",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildAdminInfoCard(account),
+                    const SizedBox(height: 20),
+                    _buildAddStaffSection(authCubit, account),
                   ],
                 ),
-              ),
-            
-          ),
-
-          /// 👤 Profile Avatar (Stack ustida)
-          Positioned(
-            top: 130,
-            left: 0,
-            right: 0,
-            child: CircleAvatar(
-              radius: 55,
-              backgroundColor: Colors.white,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.grey.shade300,
-                child: const Icon(Icons.person, size: 50, color: Colors.grey),
               ),
             ),
           ),
@@ -136,8 +89,130 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// ❗ Eski logout funksiyangiz o‘z holicha qoldi
-  Future<bool> _showDeskSelectionConfirmation() async {
+  Widget _buildAdminInfoCard(account) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Admin Ma'lumotlari",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              account?.uidName ?? "Noma'lum",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Role: ${account?.role ?? "Noma'lum"}",
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddStaffSection(AuthCubit authCubit, account) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Staff Qo'shish",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _selectedRole,
+              hint: const Text("Role tanlang"),
+              items: const [
+                DropdownMenuItem(value: 'cheff', child: Text("Cheff")),
+                DropdownMenuItem(value: 'waiter', child: Text("Waiter")),
+                DropdownMenuItem(value: 'user', child: Text("User")),
+              ],
+              onChanged: (value) => setState(() => _selectedRole = value),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _staffNameController,
+              decoration: const InputDecoration(
+                labelText: "Staff nomi",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _staffPinController,
+              decoration: const InputDecoration(
+                labelText: "Staff PIN",
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {},
+              child: const Text("Qo'shish"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Future<void> _addStaff(AuthCubit authCubit, account) async {
+  //   if (_selectedRole == null || _staffNameController.text.isEmpty || _staffPinController.text.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text("Iltimos barcha maydonlarni to'ldiring")),
+  //     );
+  //     return;
+  //   }
+
+  //   try {
+  //     final exists = await authCubit.repository.checkSubAccountExists(
+  //       ownerUid: FirebaseAuth.instance.currentUser!.uid,
+  //       role: _selectedRole!,
+  //     );
+
+  //     if (exists) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text("Siz faqat bitta $_selectedRole qo'sha olasiz")),
+  //       );
+  //       return;
+  //     }
+
+  //     await authCubit.repository.createStaff(
+  //       uidName: _staffNameController.text.trim(),
+  //       role: _selectedRole!,
+  //       pin: _staffPinController.text.trim(),
+  //     );
+
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("$_selectedRole muvaffaqiyatli qo'shildi")),
+  //     );
+
+  //     _staffNameController.clear();
+  //     _staffPinController.clear();
+  //     setState(() => _selectedRole = null);
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Xatolik yuz berdi: $e")),
+  //     );
+  //   }
+  // }
+
+  
+   Future<bool> _logout() async {
     if (!mounted) return false;
 
     final result = await showDialog<bool>(
@@ -146,8 +221,9 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+
           backgroundColor: Colors.white,
-          title: const Text(
+          title: Text(
             'Ishonchingiz komilmi?',
             style: TextStyle(
               fontSize: 20,
@@ -155,8 +231,9 @@ class _ProfilePageState extends State<ProfilePage> {
               color: Colors.black87,
             ),
           ),
-          content: const Text(
-            'Ushbu hisobni to\'liq o\'chirib yubormoqchimisiz?',
+
+          content: Text(
+            'Rostdanham tizimdan chiqishni xohlaysizmi?',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
@@ -177,22 +254,26 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final uidName = context
-                    .read<AuthCubit>()
-                    .state
-                    .account
-                    ?.uidName;
+                // Bloc ichidagi state orqali uidName ni olish
+                // final uidName = context
+                //     .read<AuthCubit>()
+                //     .state
+                //     .account
+                //     ?.uidName;
 
-                if (uidName != null) {
-                  await context.read<AuthCubit>().logout();
+                context.read<AuthCubit>().logout();
 
-                  if (!mounted) return;
-                  Navigator.of(dialogContext).pop(true);
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SplashLogoPage()),
-                    (route) => false,
-                  );
-                }
+                // if (uidName != null) {
+                // await context.read<AuthCubit>().deleteAccount(uidName);
+
+                // Delete tugagach sahifani Login/Register ga yo'naltirish
+                if (!mounted) return;
+                Navigator.of(dialogContext).pop(true);
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const SplashLogoPage()),
+                  (route) => false,
+                );
+                // }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -200,12 +281,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
-              child: const Text(
+              child: Text(
                 'O\'chirish',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
@@ -217,4 +295,5 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return result ?? false;
   }
+
 }
