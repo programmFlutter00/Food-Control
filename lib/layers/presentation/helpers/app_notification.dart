@@ -25,7 +25,7 @@ class InAppNotification {
      
       icon: Icon(Icons.error, color: Colors.red),
       isDismissible: true,
-      dismissDirection: FlushbarDismissDirection.HORIZONTAL,
+      // dismissDirection: FlushbarDismissDirection.VERTICAL,
       shouldIconPulse: false,
 
     ).show(context);
@@ -52,7 +52,7 @@ class InAppNotification {
       borderRadius: BorderRadius.circular(12),
       borderColor: Colors.green,
       borderWidth: 1,
-     
+      // dismissDirection: FlushbarDismissDirection.VERTICAL,
       icon: Icon(Icons.check_circle_outline_outlined, color: Colors.green),
     ).show(context);
  

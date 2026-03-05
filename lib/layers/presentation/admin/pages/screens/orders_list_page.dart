@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:food_control/layers/presentation/admin/widgets/show_dialog/delete_show_dialog.dart';
 import 'package:food_control/layers/presentation/extensions/extensions.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/style/icons.dart';
@@ -183,6 +184,12 @@ class _OrdersListPageState extends State<OrdersListPage>
                 color: Colors.white,
               ),
             ),
+            actions: [IconButton(
+                onPressed: () {
+                  customDeleteShowDialog(context);
+                },
+                icon: Icon(Icons.logout, size: 25, color: Colors.white),
+              ),],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(35),
               child: TabBar(

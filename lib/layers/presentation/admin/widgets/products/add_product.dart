@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:food_control/layers/presentation/admin/widgets/pick_image_page.dart';
-import 'package:food_control/layers/presentation/admin/widgets/products/custom_show_dialog.dart';
+import 'package:food_control/layers/presentation/admin/widgets/show_dialog/custom_show_dialog.dart';
 import 'package:food_control/layers/presentation/helpers/snac_bar.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/style/icons.dart';

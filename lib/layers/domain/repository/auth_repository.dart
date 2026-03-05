@@ -24,4 +24,9 @@ abstract class AuthRepository {
   /// 🔥 YANGI FUNKSIYALAR
   Future<bool> checkNameForRegister(String uidName);
   Future<bool> checkNameForLogin(String uidName);
+
+  Future<void> updateAccount({
+  required String uidName,
+  Map<String, dynamic>? data,
+});
 }

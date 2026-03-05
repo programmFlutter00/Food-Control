@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:food_control/layers/data/services/auth_service.dart';
 import 'package:food_control/layers/domain/entity/auth_entity.dart';
@@ -33,7 +34,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String uidName,
     required String pin,
   }) async {
-    await service.anonymousLogin();
+    final currentUid = await service.anonymousLogin();
 
     final doc = await service.accounts.doc(uidName).get();
 
@@ -43,14 +44,48 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final data = doc.data() as Map<String, dynamic>;
 
-    final storedPinHash = data['pinHash'] as String?;
-
-    if (storedPinHash == null || storedPinHash != hashPin(pin)) {
+    /// 🔥 PIN tekshiruv
+    if (data['pinHash'] != hashPin(pin)) {
       throw Exception("PIN noto‘g‘ri");
     }
 
-    return AuthEntity(uidName: data['uidName'], role: data['role']);
+    /// 🔥 MUHIM:
+    /// Bu account kimning ekanini tekshiramiz
+    /// Agar boshqa adminnikiga kirishga urinsa blok bo‘ladi
+
+    if (data['ownerUid'] == null) {
+      throw Exception("Xatolik");
+    }
+
+    return AuthEntity(
+      uidName: data['uidName'],
+      role: data['role'],
+      displayName: data['displayName'],
+    );
   }
+  // @override
+  // Future<AuthEntity> login({
+  //   required String uidName,
+  //   required String pin,
+  // }) async {
+  //   await service.anonymousLogin();
+
+  //   final doc = await service.accounts.doc(uidName).get();
+
+  //   if (!doc.exists) {
+  //     throw Exception("Account topilmadi");
+  //   }
+
+  //   final data = doc.data() as Map<String, dynamic>;
+
+  //   final storedPinHash = data['pinHash'] as String?;
+
+  //   if (storedPinHash == null || storedPinHash != hashPin(pin)) {
+  //     throw Exception("PIN noto‘g‘ri");
+  //   }
+
+  //   return AuthEntity(uidName: data['uidName'], role: data['role']);
+  // }
 
   /// 🟢 REGISTER → ADMIN
   @override
@@ -58,21 +93,103 @@ class AuthRepositoryImpl implements AuthRepository {
     required String uidName,
     required String pin,
   }) async {
-    final uid = await service.anonymousLogin();
-    final doc = service.accounts.doc(uidName);
+    final adminUid = await service.anonymousLogin();
+    final adminDoc = service.accounts.doc(uidName);
 
-    if ((await doc.get()).exists) {
+    if ((await adminDoc.get()).exists) {
       throw Exception("Account mavjud");
     }
 
-    await doc.set({
+    final chefPin = generateRandomPin();
+    final waiterPin = generateRandomPin();
+    final userPin = generateRandomPin();
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    /// ADMIN
+    batch.set(adminDoc, {
       "uidName": uidName,
       "role": "admin",
-      "ownerUid": uid,
+      "ownerUid": adminUid,
       "pinHash": hashPin(pin),
+      "displayName": null,
     });
 
+    /// CHEF
+    batch.set(service.accounts.doc("$uidName-chef"), {
+      "uidName": "$uidName-chef",
+      "role": "chef",
+      "ownerUid": adminUid,
+      "pinHash": hashPin(chefPin),
+    });
+
+    /// WAITER
+    batch.set(service.accounts.doc("$uidName-waiter"), {
+      "uidName": "$uidName-waiter",
+      "role": "waiter",
+      "ownerUid": adminUid,
+      "pinHash": hashPin(waiterPin),
+    });
+
+    /// USER
+    batch.set(service.accounts.doc("$uidName-user"), {
+      "uidName": "$uidName-user",
+      "role": "user",
+      "ownerUid": adminUid,
+      "pinHash": hashPin(userPin),
+    });
+
+    await batch.commit();
+
     return AuthEntity(uidName: uidName, role: "admin");
+  }
+  // @override
+  // Future<AuthEntity> register({
+  //   required String uidName,
+  //   required String pin,
+  // }) async {
+  //   final uid = await service.anonymousLogin();
+  //   final doc = service.accounts.doc(uidName);
+
+  //   if ((await doc.get()).exists) {
+  //     throw Exception("Account mavjud");
+  //   }
+
+  //   await doc.set({
+  //     "uidName": uidName,
+  //     "role": "admin",
+  //     "ownerUid": uid,
+  //     "pinHash": hashPin(pin),
+  //   });
+
+  //   return AuthEntity(uidName: uidName, role: "admin");
+  // }
+
+
+  // update
+  @override
+  Future<void> updateAccount({
+    required String uidName,
+    Map<String, dynamic>? data,
+  }) async {
+    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+
+    final docRef = service.accounts.doc(uidName);
+    final snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      throw Exception("Account topilmadi");
+    }
+
+    final accountData = snapshot.data() as Map<String, dynamic>;
+
+    /// 🔥 MUHIM TEKSHIRUV
+    /// Bu account shu adminnikimi?
+    if (accountData['ownerUid'] != currentUid) {
+      throw Exception("Ruxsat yo‘q");
+    }
+
+    await docRef.update(data ?? {});
   }
 
   /// 👥 STAFF CREATE

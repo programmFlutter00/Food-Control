@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:food_control/layers/data/services/notification_service.dart';
 import 'package:food_control/layers/presentation/admin/pages/screens/profile_page.dart';
 import 'package:food_control/layers/presentation/admin/widgets/products/add_product.dart';
 import 'package:food_control/layers/presentation/admin/widgets/products/product_detail.dart';
+import 'package:food_control/layers/presentation/admin/widgets/show_dialog/delete_show_dialog.dart';
 import 'package:food_control/layers/presentation/auth/bloc/cubit/auth_cubit.dart';
 import 'package:food_control/layers/presentation/extensions/extensions.dart';
-import 'package:food_control/layers/presentation/helpers/app_notification.dart';
 import 'package:food_control/layers/presentation/splash/splash_logo_page.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/style/icons.dart';
 import 'package:food_control/layers/presentation/widgets/custom_floating_action_button.dart';
 import 'package:gap/gap.dart';
-import 'package:timezone/data/latest.dart' as tz;
 
 class ProductsListPage extends StatefulWidget {
   const ProductsListPage({super.key});
@@ -121,11 +119,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
     },
   ];
 
-  // @override
-  // void initState() {
-  //   tz.initializeTimeZones();
-  //   super.initState();
-  // }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,7 +156,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
             actions: [
               IconButton(
                 onPressed: () {
-                  _showDeskSelectionConfirmation();
+                  customDeleteShowDialog(context);
                 },
                 icon: Icon(Icons.logout, size: 25, color: Colors.white),
               ),
@@ -316,90 +309,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
     );
   }
 
-  Future<bool> _showDeskSelectionConfirmation() async {
-    if (!mounted) return false;
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-
-          backgroundColor: Colors.white,
-          title: Text(
-            'Ishonchingiz komilmi?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-
-          content: Text(
-            'Ushbu hisobni to\'liq o\'chirib yubomoqchimisiz?',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Colors.black54,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Bekor qilish',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                // Bloc ichidagi state orqali uidName ni olish
-                // final uidName = context
-                //     .read<AuthCubit>()
-                //     .state
-                //     .account
-                //     ?.uidName;
-
-                context.read<AuthCubit>().logout();
-
-                // if (uidName != null) {
-                // await context.read<AuthCubit>().deleteAccount(uidName);
-
-                // Delete tugagach sahifani Login/Register ga yo'naltirish
-                if (!mounted) return;
-                Navigator.of(dialogContext).pop(true);
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const SplashLogoPage()),
-                  (route) => false,
-                );
-                // }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              child: Text(
-                'O\'chirish',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    return result ?? false;
-  }
-}
+ }
 
 
 

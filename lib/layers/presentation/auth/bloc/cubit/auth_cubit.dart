@@ -1,5 +1,7 @@
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:food_control/layers/domain/entity/auth_entity.dart';
 import 'package:food_control/layers/domain/usecase/auth/check_login_usecase.dart';
@@ -7,6 +9,7 @@ import 'package:food_control/layers/domain/usecase/auth/check_register_usecase.d
 import 'package:food_control/layers/domain/usecase/auth/login_usecase.dart';
 import 'package:food_control/layers/domain/usecase/auth/register_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:food_control/layers/presentation/helpers/pin_hash_helper.dart';
 
 part 'auth_state.dart';
 
@@ -23,113 +26,147 @@ class AuthCubit extends Cubit<AuthState> {
     required this.checkRegisterNameUseCase,
   }) : super(const AuthState());
 
+  /// 🔹 REGISTER NAME CHECK → PIN sahifaga tayyor
   Future<void> checkRegisterAndGoPin(String uidName) async {
     emit(state.copyWith(status: AuthStatus.loading));
-
-    final available = await checkRegisterNameUseCase(uidName);
-    // debugPrint("UIDName: '$uidName', checkRegisterName: $available");
-
-    if (available) {
+    try {
+      final available = await checkRegisterNameUseCase(uidName);
+      if (available) {
+        emit(
+          state.copyWith(
+            isReadyForPin: true,
+            status: AuthStatus.initial,
+            errorMessage: null,
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 100), () {
+          emit(state.copyWith(isReadyForPin: false));
+        });
+      } else {
+        emit(
+          state.copyWith(
+            isReadyForPin: false,
+            status: AuthStatus.error,
+            errorMessage: "Bu hisob allaqachon mavjud",
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Register check error: $e");
       emit(
         state.copyWith(
-          isReadyForPin: true,
-          status: AuthStatus.initial, // hali authenticated emas
-          errorMessage: null,
-        ),
-      );
-
-      Future.delayed(const Duration(milliseconds: 100), () {
-      emit(state.copyWith(isReadyForPin: false));
-    });
-    } else {
-      emit(
-        state.copyWith(
-          isReadyForPin: false,
           status: AuthStatus.error,
-          errorMessage: "Bu hisob allaqachon mavjud",
+          isReadyForPin: false,
+          errorMessage: "Register tekshiruvida xatolik yuz berdi",
         ),
       );
     }
-
   }
 
-  // LOGIN NAME CHECK → PIN sahifasiga tayyor
+  /// 🔹 LOGIN NAME CHECK → PIN sahifaga tayyor
   Future<void> checkLoginAndGoPin(String uidName) async {
     emit(state.copyWith(status: AuthStatus.loading));
-
-    // try {
-    final exists = await checkLoginNameUseCase(uidName);
-
-    if (exists) {
+    try {
+      final exists = await checkLoginNameUseCase(uidName);
+      if (exists) {
+        emit(
+          state.copyWith(
+            isReadyForPinLogin: true,
+            status: AuthStatus.initial,
+            errorMessage: null,
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 100), () {
+          emit(state.copyWith(isReadyForPinLogin: false));
+        });
+      } else {
+        emit(
+          state.copyWith(
+            isReadyForPinLogin: false,
+            status: AuthStatus.error,
+            errorMessage: "Hisob topilmadi",
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Login check error: $e");
       emit(
         state.copyWith(
-          isReadyForPinLogin: true,
-          status: AuthStatus.initial,
-          errorMessage: null,
-        ),
-      );
-    
-     Future.delayed(const Duration(milliseconds: 100), () {
-      emit(state.copyWith(isReadyForPinLogin: false));
-    });
-  }
-    else {
-      emit(
-        state.copyWith(
-          isReadyForPinLogin: false,
           status: AuthStatus.error,
-          errorMessage: "Hisob topilmadi",
+          errorMessage: "Login tekshiruvida xatolik yuz berdi",
+          isReadyForPinLogin: false,
         ),
       );
     }
-    // } catch (e) {
-    //   debugPrint('Login error: $e');
-    //   emit(
-    //       state.copyWith(
-    //         status: AuthStatus.error,
-    //         errorMessage: "Hisob topilmadi",
-    //         isReadyForPinLogin: false,
-    //       ),
-    //     );
-    // }
   }
 
-  // REGISTER → faqat PIN sahifasidan keyin authenticated
-  Future<void> register(String uidName, String pin) async {
+  /// 🔹 REGISTER → admin bitta + 3 subaccounts
+  Future<void> registerMultiAccount({
+    required String adminName,
+    required String adminPin,
+    required Map<String, String> subAccounts, // key = uidName, value = pin
+  }) async {
     emit(state.copyWith(status: AuthStatus.loading));
 
     try {
-      final account = await registerUseCase(uidName: uidName, pin: pin);
+      // 🔹 Adminni register qilish
+      final adminAccount = await registerUseCase(
+        uidName: adminName,
+        pin: adminPin,
+      );
 
-      await saveUidName(uidName);
+      // 🔹 UIDName saqlash
+      await saveUidName(adminName);
+
+      // 🔹 Sub-accountlarni yaratish Firestore batch bilan
+      final batch = FirebaseFirestore.instance.batch();
+      final accountsCollection = FirebaseFirestore.instance.collection(
+        'accounts',
+      );
+
+      for (var entry in subAccounts.entries) {
+        final uidName = entry.key;
+        final pin = entry.value;
+
+        final docRef = accountsCollection.doc(uidName);
+        batch.set(docRef, {
+          'uidName': uidName,
+          'role': uidName.endsWith('-chef')
+              ? 'chef'
+              : uidName.endsWith('-waiter')
+              ? 'waiter'
+              : 'user',
+          'ownerUid': FirebaseAuth.instance.currentUser!.uid,
+          'pinHash': hashPin(pin),
+        });
+      }
+
+      await batch.commit();
 
       emit(
         state.copyWith(
           status: AuthStatus.authenticated,
-          account: account,
+          account: adminAccount,
           isReadyForPin: false,
         ),
       );
     } catch (e) {
-      debugPrint('Login error: $e');
+      debugPrint("Register multi-account error: $e");
       emit(
         state.copyWith(
           status: AuthStatus.error,
-          errorMessage: "Account yaratilmadi",
+          errorMessage: "Hisoblar yaratilmadi",
         ),
       );
     }
   }
 
-  // LOGIN → faqat PIN sahifasidan keyin authenticated
+  /// 🔹 LOGIN → PIN bilan
   Future<void> login(String uidName, String pin) async {
     emit(state.copyWith(status: AuthStatus.loading));
-
     try {
       final account = await loginUseCase(uidName: uidName, pin: pin);
-
       await saveUidName(uidName);
-
       emit(
         state.copyWith(
           status: AuthStatus.authenticated,
@@ -138,7 +175,7 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
     } catch (e) {
-      debugPrint('Login error: $e');
+      debugPrint("Login error: $e");
       emit(
         state.copyWith(
           status: AuthStatus.unauthenticated,
@@ -148,7 +185,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  // UID saqlash
+  /// 🔹 UID saqlash
   Future<void> saveUidName(String uidName) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('uidName', uidName);
@@ -159,11 +196,47 @@ class AuthCubit extends Cubit<AuthState> {
     return prefs.getString('uidName');
   }
 
-  // LOGOUT
+  /// 🔹 LOGOUT
+  // Future<void> logout() async {
+  //   await FirebaseAuth.instance.signOut();
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.remove('uidName');
+  //   emit(const AuthState());
+  // }
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('uidName');
 
     emit(const AuthState());
+  }
+
+  /// 🔹 FULL ACCOUNT DELETE (admin yoki user)
+  Future<void> deleteAccount(String uidName) async {
+    try {
+      emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
+      final batch = FirebaseFirestore.instance.batch();
+      final accountsCollection = FirebaseFirestore.instance.collection(
+        'accounts',
+      );
+      final snapshot = await accountsCollection
+          .where('uidName', isEqualTo: uidName)
+          .get();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('uidName');
+
+      emit(const AuthState(status: AuthStatus.unauthenticated));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: "Accountni o'chirishda xatolik: $e",
+        ),
+      );
+    }
   }
 }

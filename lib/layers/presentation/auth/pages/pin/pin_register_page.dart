@@ -16,7 +16,6 @@ class PinRegisterPage extends StatefulWidget {
   @override
   State<PinRegisterPage> createState() => _PinRegisterPageState();
 }
-
 class _PinRegisterPageState extends State<PinRegisterPage> {
   late final TextEditingController _pinController;
 
@@ -24,25 +23,46 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
   void initState() {
     super.initState();
     _pinController = TextEditingController();
-    // _pinController.addListener(_onPinChanged);
+  }
+
+  /// Random 5 raqamli PIN generatsiya qiluvchi helper
+  String _generateRandomPin() {
+    final random = DateTime.now().millisecondsSinceEpoch.remainder(90000) + 10000;
+    return random.toString().substring(0, 5);
   }
 
   void _onPinChanged() {
     final pin = _pinController.text.trim();
-    if (pin.isEmpty || pin.length > 5){
+
+    if (pin.isEmpty || pin.length > 5) {
       InAppNotification.showError(context, "Iltimos pin kodni to'liq kiriting!");
-      // showErrorDialog(context, "Iltimos pin kodni to'liq kiriting!");
+      return;
     }
+
     if (pin.length == 5) {
-      // PIN to'liq kiritilgan, avtomatik yuborish
-      context.read<AuthCubit>().register(widget.name, pin);
+      // Admin PIN to'liq kiritildi, multi-account yaratish
+      final authCubit = context.read<AuthCubit>();
+      final adminName = widget.name;
+
+      // Har bir sub-account uchun random pin yaratish
+      final chefPin = _generateRandomPin();
+      final waiterPin = _generateRandomPin();
+      final userPin = _generateRandomPin();
+
+      authCubit.registerMultiAccount(
+        adminName: adminName,
+        adminPin: pin,
+        subAccounts: {
+          "${adminName}-chef": chefPin,
+          "${adminName}-waiter": waiterPin,
+          "${adminName}-user": userPin,
+        },
+      );
     }
-     
   }
 
   @override
   void dispose() {
-    _pinController.removeListener(_onPinChanged);
     _pinController.dispose();
     super.dispose();
   }
@@ -66,16 +86,14 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
             MaterialPageRoute(builder: (_) => const MainNavigationPage()),
             (route) => false,
           );
-        } else if (state.status == AuthStatus.unauthenticated &&
-            state.errorMessage != null) {
-              InAppNotification.showError(context, state.errorMessage!);
-          // showMessage(context: context, message: state.errorMessage!);
+        } else if (state.status == AuthStatus.error && state.errorMessage != null) {
+          InAppNotification.showError(context, state.errorMessage!);
         }
       },
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(),
-           floatingActionButton: CustomFloatingActionButton(
+          floatingActionButton: CustomFloatingActionButton(
             onPressed: _onPinChanged,
             icon: state.status == AuthStatus.loading
                 ? const SizedBox(
@@ -123,11 +141,6 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
                       ),
                     ),
                   ),
-                  // if (state.status == AuthStatus.loading)
-                  //   const Padding(
-                  //     padding: EdgeInsets.only(top: 16.0),
-                  //     child: CircularProgressIndicator(),
-                  //   ),
                 ],
               ),
             ),

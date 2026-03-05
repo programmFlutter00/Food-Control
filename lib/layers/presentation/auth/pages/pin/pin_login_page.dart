@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:food_control/layers/presentation/helpers/app_notification.dart';
+import 'package:food_control/layers/presentation/splash/splash_logo_page.dart';
 import 'package:food_control/layers/presentation/widgets/custom_floating_action_button.dart';
 import 'package:pinput/pinput.dart';
 import 'package:food_control/layers/presentation/admin/pages/main_navigation_page.dart';
@@ -63,7 +64,7 @@ class _PinLoginPageState extends State<PinLoginPage> {
         if (state.status == AuthStatus.authenticated && state.account != null) {
           setState(() => _borderColor = Colors.green); // PIN to'g'ri
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainNavigationPage()),
+            MaterialPageRoute(builder: (_) => const SplashLogoPage()),
             (route) => false,
           );
         } else if (state.status == AuthStatus.unauthenticated &&
