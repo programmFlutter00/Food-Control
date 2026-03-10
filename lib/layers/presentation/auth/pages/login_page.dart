@@ -137,11 +137,8 @@ class _LoginPageState extends State<LoginPage> {
                     return;
                   }
                   if (currentStatus == NetworkStatus.offline) {
-                    if (name.isEmpty) {
-                      InAppNotification.showSuccess(context, "Siz oflinesiz");
-
-                      return;
-                    }
+                    InAppNotification.showError(context, "Internet yo'q");
+                    return;
                   }
                   context.read<AuthCubit>().checkLoginAndGoPin(name);
                 },

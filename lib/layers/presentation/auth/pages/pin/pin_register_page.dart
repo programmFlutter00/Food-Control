@@ -49,14 +49,10 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
       final waiterPin = _generateRandomPin();
       final userPin = _generateRandomPin();
 
-      authCubit.registerMultiAccount(
-        adminName: adminName,
-        adminPin: pin,
-        subAccounts: {
-          "${adminName}-chef": chefPin,
-          "${adminName}-waiter": waiterPin,
-          "${adminName}-user": userPin,
-        },
+      authCubit.register(
+        name: adminName,
+        pin: pin,
+        
       );
     }
   }

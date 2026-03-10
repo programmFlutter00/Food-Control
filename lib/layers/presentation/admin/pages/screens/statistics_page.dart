@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:food_control/layers/presentation/admin/widgets/show_dialog/delete_show_dialog.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 
 class StatisticsPage extends StatefulWidget {
@@ -32,6 +33,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
           child: AppBar(
         backgroundColor: AppColors.standart,
         title: Text("Statistika", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),),
+        actions: [  IconButton(
+                onPressed: () {
+                  customDeleteShowDialog(context);
+                },
+                icon: Icon(Icons.logout, size: 25, color: Colors.white),
+              ),],
       ),)),
     );
   }

@@ -42,7 +42,7 @@ class _PinLoginPageState extends State<PinLoginPage> {
 
   @override
   void dispose() {
-    _pinController.removeListener(_onPinChanged);
+    // _pinController.removeListener(_onPinChanged);
     _pinController.dispose();
     super.dispose();
   }

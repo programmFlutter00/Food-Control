@@ -101,66 +101,41 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   /// 🔹 REGISTER → admin bitta + 3 subaccounts
-  Future<void> registerMultiAccount({
-    required String adminName,
-    required String adminPin,
-    required Map<String, String> subAccounts, // key = uidName, value = pin
-  }) async {
-    emit(state.copyWith(status: AuthStatus.loading));
+ Future<void> register({
+  required String name,
+  required String pin,
+}) async {
 
-    try {
-      // 🔹 Adminni register qilish
-      final adminAccount = await registerUseCase(
-        uidName: adminName,
-        pin: adminPin,
-      );
+  emit(state.copyWith(status: AuthStatus.loading));
 
-      // 🔹 UIDName saqlash
-      await saveUidName(adminName);
+  try {
 
-      // 🔹 Sub-accountlarni yaratish Firestore batch bilan
-      final batch = FirebaseFirestore.instance.batch();
-      final accountsCollection = FirebaseFirestore.instance.collection(
-        'accounts',
-      );
+    final account = await registerUseCase(
+      uidName: name,
+      pin: pin,
+    );
 
-      for (var entry in subAccounts.entries) {
-        final uidName = entry.key;
-        final pin = entry.value;
+    await saveUidName(name);
 
-        final docRef = accountsCollection.doc(uidName);
-        batch.set(docRef, {
-          'uidName': uidName,
-          'role': uidName.endsWith('-chef')
-              ? 'chef'
-              : uidName.endsWith('-waiter')
-              ? 'waiter'
-              : 'user',
-          'ownerUid': FirebaseAuth.instance.currentUser!.uid,
-          'pinHash': hashPin(pin),
-        });
-      }
+    emit(
+      state.copyWith(
+        status: AuthStatus.authenticated,
+        account: account,
+      ),
+    );
 
-      await batch.commit();
+  } catch (e) {
 
-      emit(
-        state.copyWith(
-          status: AuthStatus.authenticated,
-          account: adminAccount,
-          isReadyForPin: false,
-        ),
-      );
-    } catch (e) {
-      debugPrint("Register multi-account error: $e");
-      emit(
-        state.copyWith(
-          status: AuthStatus.error,
-          errorMessage: "Hisoblar yaratilmadi",
-        ),
-      );
-    }
+    emit(
+      state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: "Hisob yaratilmadi",
+      ),
+    );
+
   }
 
+}
   /// 🔹 LOGIN → PIN bilan
   Future<void> login(String uidName, String pin) async {
     emit(state.copyWith(status: AuthStatus.loading));

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:food_control/layers/presentation/admin/pages/main_navigation_page.dart';
-
 import 'package:food_control/layers/presentation/admin/pages/screens/orders_list_page.dart';
 import 'package:food_control/layers/presentation/admin/pages/screens/products_list_page.dart';
 import 'package:food_control/layers/presentation/admin/pages/screens/statistics_page.dart';
@@ -19,6 +18,7 @@ class SplashLogoPage extends StatefulWidget {
 }
 
 class _SplashLogoPageState extends State<SplashLogoPage> {
+
   @override
   void initState() {
     super.initState();
@@ -26,49 +26,71 @@ class _SplashLogoPageState extends State<SplashLogoPage> {
   }
 
   Future<void> _initialize() async {
-    await Future.delayed(const Duration(seconds: 2));
 
-    final prefs = await SharedPreferences.getInstance();
-    final uidName = prefs.getString('uidName');
+    try {
 
-    if (uidName == null || uidName.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final uidName = prefs.getString('uidName');
+
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted) return;
+
+      if (uidName == null || uidName.isEmpty) {
+        _goToLogin();
+        return;
+      }
+
+      final doc = await FirebaseFirestore.instance
+          .collection('accounts')
+          .doc(uidName)
+          .get();
+
+      if (!mounted) return;
+
+      if (doc.exists) {
+
+        final data = doc.data() as Map<String, dynamic>;
+        final role = data['role'] ?? 'user';
+
+        _goToRolePage(role);
+
+      } else {
+
+        await prefs.remove('uidName');
+        _goToLogin();
+
+      }
+
+    } catch (e) {
+
+      if (!mounted) return;
+
       _goToLogin();
-      return;
+
     }
 
-    // 🔥 Firebase tekshiruv
-    final doc = await FirebaseFirestore.instance
-        .collection('accounts')
-        .doc(uidName)
-        .get();
-
-    if (!mounted) return;
-
-    if (doc.exists) {
-      final data = doc.data() as Map<String, dynamic>;
-      final role = data['role'] ?? 'user';
-
-      _goToRolePage(role);
-    } else {
-      // 🔥 Account o‘chirilgan bo‘lsa local ham tozalanadi
-      await prefs.remove('uidName');
-      _goToLogin();
-    }
   }
 
   void _goToRolePage(String role) {
+
+    if (!mounted) return;
+
     Widget page;
 
     switch (role) {
       case 'admin':
         page = const MainNavigationPage();
         break;
+
       case 'chef':
         page = const OrdersListPage();
         break;
+
       case 'waiter':
         page = const ProductsListPage();
         break;
+
       case 'user':
       default:
         page = const StatisticsPage();
@@ -83,6 +105,9 @@ class _SplashLogoPageState extends State<SplashLogoPage> {
   }
 
   void _goToLogin() {
+
+    if (!mounted) return;
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -92,16 +117,23 @@ class _SplashLogoPageState extends State<SplashLogoPage> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: AppColors.standart,
       body: SafeArea(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset(AppIcons.spashLogo2, width: 100, height: 100),
+
+              Image.asset(
+                AppIcons.spashLogo2,
+                width: 100,
+                height: 100,
+              ),
+
               const Gap(10),
+
               const Text(
                 "Food Control",
                 style: TextStyle(
@@ -110,6 +142,7 @@ class _SplashLogoPageState extends State<SplashLogoPage> {
                   color: Colors.white,
                 ),
               ),
+
             ],
           ),
         ),
