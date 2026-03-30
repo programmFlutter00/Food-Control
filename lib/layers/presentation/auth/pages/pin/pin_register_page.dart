@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:food_control/layers/presentation/helpers/app_notification.dart';
@@ -25,37 +26,32 @@ class _PinRegisterPageState extends State<PinRegisterPage> {
     _pinController = TextEditingController();
   }
 
-  /// Random 5 raqamli PIN generatsiya qiluvchi helper
-  String _generateRandomPin() {
-    final random = DateTime.now().millisecondsSinceEpoch.remainder(90000) + 10000;
-    return random.toString().substring(0, 5);
+ void _onPinChanged() async {
+  final pin = _pinController.text.trim();
+
+  if (pin.isEmpty || pin.length != 5) {
+    InAppNotification.showError(context, "Iltimos, 5 xonali PIN kiriting!");
+    return;
   }
 
-  void _onPinChanged() {
-    final pin = _pinController.text.trim();
+  try {
+    final authCubit = context.read<AuthCubit>();
+    final adminName = widget.name;
 
-    if (pin.isEmpty || pin.length > 5) {
-      InAppNotification.showError(context, "Iltimos pin kodni to'liq kiriting!");
-      return;
-    }
+    // 🔹 Anonymous login qilamiz → ownerUid olish
+    final user = await FirebaseAuth.instance.signInAnonymously();
+    final ownerUid = user.user!.uid;
 
-    if (pin.length == 5) {
-      // Admin PIN to'liq kiritildi, multi-account yaratish
-      final authCubit = context.read<AuthCubit>();
-      final adminName = widget.name;
-
-      // Har bir sub-account uchun random pin yaratish
-      final chefPin = _generateRandomPin();
-      final waiterPin = _generateRandomPin();
-      final userPin = _generateRandomPin();
-
-      authCubit.register(
-        name: adminName,
-        pin: pin,
-        
-      );
-    }
+    // 🔹 Register funksiyasini chaqiramiz, ownerUid bilan
+    await authCubit.register(
+      name: adminName,
+      pin: pin,
+      ownerUid: ownerUid, // 🔹 Bu ownerUid har doim Firestore create uchun ishlatiladi
+    );
+  } catch (e) {
+    InAppNotification.showError(context, "Hisob yaratishda xatolik: $e");
   }
+}
 
   @override
   void dispose() {

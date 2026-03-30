@@ -5,7 +5,7 @@ abstract class AuthRepository {
   Future<AuthEntity> login({required String uidName, required String pin});
 
   /// REGISTER (PIN bilan)
-  Future<AuthEntity> register({required String uidName, required String pin});
+  Future<AuthEntity> register({required String uidName, required String pin , required String ownerUid});
 
   /// 🔥 YANGI FUNKSIYALAR
   Future<bool> checkNameForRegister(String uidName);

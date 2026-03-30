@@ -4,7 +4,6 @@ import 'package:food_control/layers/presentation/helpers/app_notification.dart';
 import 'package:food_control/layers/presentation/splash/splash_logo_page.dart';
 import 'package:food_control/layers/presentation/widgets/custom_floating_action_button.dart';
 import 'package:pinput/pinput.dart';
-import 'package:food_control/layers/presentation/admin/pages/main_navigation_page.dart';
 import 'package:food_control/layers/presentation/auth/bloc/cubit/auth_cubit.dart';
 import 'package:food_control/layers/presentation/style/app_colors.dart';
 import 'package:food_control/layers/presentation/widgets/standart_padding.dart';
@@ -22,27 +21,73 @@ class _PinLoginPageState extends State<PinLoginPage> {
   late final TextEditingController _pinController;
   Color _borderColor = Colors.grey;
 
+  int _attemptsLeft = 3; // 🔹 3 urinish
+  bool _isBlocked = false;
+  DateTime? _blockedUntil;
+
   @override
   void initState() {
     super.initState();
     _pinController = TextEditingController();
-    // _pinController.addListener(_onPinChanged);
   }
 
-  void _onPinChanged() {
-    final pin = _pinController.text.trim();
-    if (pin.isEmpty || pin.length < 5) {
-      InAppNotification.showError(context, "Iltimos pin kodni to'liq kiriting!");
-      // showErrorDialog(context, "Iltimos pin kodni to'liq kiriting!");
+  void _onPinChanged() async {
+    if (_isBlocked) {
+      final remaining = _blockedUntil!.difference(DateTime.now());
+      if (remaining.inSeconds > 0) {
+        InAppNotification.showError(
+            context,
+            "Siz bloklandingiz! ${remaining.inSeconds} soniyadan keyin qayta urinib ko'ring."
+        );
+        return;
+      } else {
+        _isBlocked = false;
+        _attemptsLeft = 3;
+      }
     }
-    if (pin.length == 5) {
-      context.read<AuthCubit>().login(widget.name, pin);
+
+    final pin = _pinController.text.trim();
+    if (pin.length != 5) {
+      InAppNotification.showError(context, "Iltimos 5 xonali PIN kiriting!");
+      return;
+    }
+
+    final authCubit = context.read<AuthCubit>();
+    final result = await authCubit.tryLogin(widget.name, pin); // yangi funksiya
+
+    if (result) {
+      // ✅ PIN to'g'ri
+      setState(() => _borderColor = Colors.green);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SplashLogoPage()),
+        (route) => false,
+      );
+    } else {
+      // ❌ PIN noto'g'ri
+      setState(() => _borderColor = Colors.red);
+      _pinController.clear();
+      _attemptsLeft--;
+
+      if (_attemptsLeft <= 0) {
+        _isBlocked = true;
+        _blockedUntil = DateTime.now().add(const Duration(seconds: 30)); // 30 soniyaga blok
+        InAppNotification.showError(
+            context, "Siz 3 marta xato kiritdingiz! 30 soniyaga bloklandingiz."
+        );
+      } else {
+        InAppNotification.showError(
+            context, "PIN xato, ${_attemptsLeft} urinish qoldi!"
+        );
+      }
+
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        setState(() => _borderColor = Colors.grey);
+      });
     }
   }
 
   @override
   void dispose() {
-    // _pinController.removeListener(_onPinChanged);
     _pinController.dispose();
     super.dispose();
   }
@@ -59,90 +104,51 @@ class _PinLoginPageState extends State<PinLoginPage> {
       ),
     );
 
-    return BlocConsumer<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state.status == AuthStatus.authenticated && state.account != null) {
-          setState(() => _borderColor = Colors.green); // PIN to'g'ri
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const SplashLogoPage()),
-            (route) => false,
-          );
-        } else if (state.status == AuthStatus.unauthenticated &&
-            state.errorMessage != null) {
-          // PIN xato bo'lsa
-          setState(() => _borderColor = Colors.red);
-          _pinController.clear();
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            setState(() => _borderColor = Colors.grey);
-          });
-          
-          // showMessage(context: context, message: "Pin xato, qaytadan urining");
-        } else {
-          setState(() => _borderColor = Colors.grey);
-        }
-      },
-      builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(),
-          floatingActionButton: CustomFloatingActionButton(
-            onPressed: _onPinChanged,
-            icon: state.status == AuthStatus.loading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Icon(Icons.login),
-          ),
-          body: StandartPadding(
-            child: SizedBox(
-              width: double.infinity,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Gap(15),
-                  const Text(
-                    "PIN kod",
-                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                  ),
-                  const Gap(6),
-                  const Text(
-                    "Hisobingizdagi PIN kodni kiriting",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Gap(12),
-                  Pinput(
-                    length: 5,
-                    controller: _pinController,
-                    obscureText: true,
-                    obscuringCharacter: '●',
-                    defaultPinTheme: defaultPinTheme,
-                    focusedPinTheme: defaultPinTheme.copyWith(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.standart, width: 2),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                  // if (state.status == AuthStatus.loading)
-                  //   const Padding(
-                  //     padding: EdgeInsets.only(top: 16.0),
-                  //     child: CircularProgressIndicator(),
-                  //   ),
-                ],
+    return Scaffold(
+      appBar: AppBar(),
+      floatingActionButton: CustomFloatingActionButton(
+        onPressed: _onPinChanged,
+        icon: const Icon(Icons.login),
+      ),
+      body: StandartPadding(
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Gap(15),
+              const Text(
+                "PIN kod",
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
               ),
-            ),
+              const Gap(6),
+              const Text(
+                "Hisobingizdagi PIN kodni kiriting",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Gap(12),
+              Pinput(
+                length: 5,
+                controller: _pinController,
+                obscureText: true,
+                obscuringCharacter: '●',
+                defaultPinTheme: defaultPinTheme,
+                focusedPinTheme: defaultPinTheme.copyWith(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.standart, width: 2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -9,7 +9,6 @@ import 'package:food_control/layers/domain/usecase/auth/check_register_usecase.d
 import 'package:food_control/layers/domain/usecase/auth/login_usecase.dart';
 import 'package:food_control/layers/domain/usecase/auth/register_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:food_control/layers/presentation/helpers/pin_hash_helper.dart';
 
 part 'auth_state.dart';
 
@@ -104,15 +103,16 @@ class AuthCubit extends Cubit<AuthState> {
  Future<void> register({
   required String name,
   required String pin,
+  required String ownerUid, // 🔹 yangi param
 }) async {
-
   emit(state.copyWith(status: AuthStatus.loading));
 
   try {
-
+    // 🔹 Admin + 3 sub-accountlarni yaratamiz
     final account = await registerUseCase(
       uidName: name,
       pin: pin,
+      ownerUid: ownerUid,
     );
 
     await saveUidName(name);
@@ -123,18 +123,43 @@ class AuthCubit extends Cubit<AuthState> {
         account: account,
       ),
     );
-
   } catch (e) {
-
     emit(
       state.copyWith(
         status: AuthStatus.error,
-        errorMessage: "Hisob yaratilmadi",
+        errorMessage: "Hisob yaratilmadi: $e",
+      ),
+    );
+  }
+}
+/// 🔹 PIN login uchun urinishlarni hisoblaydigan funksiya
+Future<bool> tryLogin(String uidName, String pin) async {
+  try {
+    // loginUseCase orqali PIN tekshiruv
+    final account = await loginUseCase(uidName: uidName, pin: pin);
+
+    // ✅ PIN to'g'ri → UID saqlash
+    await saveUidName(uidName);
+
+    emit(
+      state.copyWith(
+        status: AuthStatus.authenticated,
+        account: account,
+        isReadyForPinLogin: false,
       ),
     );
 
+    return true; // to'g'ri
+    } catch (e) {
+    debugPrint("tryLogin error: $e");
+    emit(
+      state.copyWith(
+        status: AuthStatus.unauthenticated,
+        errorMessage: "PIN noto‘g‘ri",
+      ),
+    );
+    return false;
   }
-
 }
   /// 🔹 LOGIN → PIN bilan
   Future<void> login(String uidName, String pin) async {

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -49,8 +50,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             );
           });
-        } else if (state.errorMessage?.isNotEmpty ?? false) {
-        }
+        } else if (state.errorMessage?.isNotEmpty ?? false) {}
       },
 
       builder: (context, state) {
@@ -67,7 +67,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const Gap(6),
                 const Text(
-                  "Xavfsizlik uchun murakkab nomdan foydalaning",
+                  "Xavfsizlik uchun murakkab hisob kiriting",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -115,22 +115,32 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   )
                 : const Icon(Icons.login),
-            onPressed: () {
-              // 🔹 Trim + lowercase
+            onPressed: () async {
               final name = _controller.text.trim();
 
               if (name.isEmpty) {
-                InAppNotification.showError(context, "Iltimos hisob nomini kiriting!");             
+                InAppNotification.showError(
+                  context,
+                  "Iltimos hisob nomini kiriting!",
+                );
                 return;
               }
 
               if (!_isValidName(name) || name.length < 7) {
-                InAppNotification.showError(context, "Bu hisob xavfsiz emas!");             
+                InAppNotification.showError(context, "Bu hisob xavfsiz emas!");
                 return;
               }
 
-              // 🔹 Cubit orqali tekshiruv
-              context.read<AuthCubit>().checkRegisterAndGoPin(name);
+              try {
+                // 🔹 Anonymous login qilamiz
+                final user = await FirebaseAuth.instance.signInAnonymously();
+                print("Anonymous UID: ${user.user!.uid}");
+
+                // 🔹 Cubit orqali tekshiruv
+                await context.read<AuthCubit>().checkRegisterAndGoPin(name);
+              } catch (e) {
+                InAppNotification.showError(context, "Xatolik yuz berdi: $e");
+              }
             },
           ),
         );

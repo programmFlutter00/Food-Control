@@ -9,7 +9,8 @@ class RegisterUseCase {
   Future<AuthEntity> call({
     required String uidName,
     required String pin,
+    required String ownerUid
   }) {
-    return repo.register(uidName: uidName, pin: pin);
+    return repo.register(uidName: uidName, pin: pin, ownerUid: ownerUid);
   }
 }
